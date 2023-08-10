@@ -14,9 +14,6 @@ import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-/*import android.telephony.CellInfoLte
-import android.telephony.CellInfoCdma
-import android.telephony.CellInfoGsm*/
 import android.telephony.cdma.CdmaCellLocation 
 import android.telephony.gsm.GsmCellLocation 
 
@@ -33,10 +30,8 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
     private val E_NO_MOBILE_COUNTRY_CODE = "no_mobile_country_code"
     private val E_NO_MOBILE_NETWORK = "no_mobile_network"
     private val E_NO_NETWORK_OPERATOR = "no_network_operator"
-    private val E_NO_CELL_ID = "no_cell_id"
     private var mTelephonyManager: TelephonyManager? = null
     private lateinit var func: () -> Unit?
-
 
 
     fun setActivity(act: Activity?) {
@@ -48,7 +43,6 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         this.context = context
 
         mTelephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -88,17 +82,6 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
                             networkGeneration(result)
                         }
                     }
-
-                }
-                "cellId" -> {
-                    func = { cellId(result) }
-                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
-                        if (!checkIfAlreadyHavePermission()) {
-                            requestForSpecificPermission(2)
-                        }else{
-                            cellId(result)
-                        }
-                    }
                 }
                 else -> {
                     result.notImplemented()
@@ -108,14 +91,12 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
     }
 
     private fun requestForSpecificPermission(i: Int) {
-        ActivityCompat.requestPermissions(this.activity!!, arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.ACCESS_NETWORK_STATE, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION), i)
+        ActivityCompat.requestPermissions(this.activity!!, arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.ACCESS_NETWORK_STATE), i)
     }
 
     private fun checkIfAlreadyHavePermission(): Boolean {
         return ContextCompat.checkSelfPermission(this.activity!!, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED && 
-        ContextCompat.checkSelfPermission(this.activity!!, Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED && 
-        ContextCompat.checkSelfPermission(this.activity!!, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-        ContextCompat.checkSelfPermission(this.activity!!, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(this.activity!!, Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun carrierName(result: MethodChannel.Result) {
@@ -225,60 +206,6 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         } else {
             result.error(E_NO_NETWORK_OPERATOR, "No mobile network operator", "")
         }
-    }
-
-    // return cell id
-    private fun cellId(result: MethodChannel.Result){
-        val location = mTelephonyManager!!.getCellLocation()
-        if (location != null) {
-            var cid = -1
-            var lac = -1
-            if (location is GsmCellLocation) {
-                cid = (location as GsmCellLocation).getCid()
-                lac = (location as GsmCellLocation).getLac()
-
-            } else if(location is CdmaCellLocation){
-                cid = (location as CdmaCellLocation).getBaseStationId()
-                lac = (location as CdmaCellLocation).getNetworkId()
-            }
-            result.success(
-                """
-                {
-                    "cid": $cid,
-                    "lac": $lac
-                }
-                """
-            )
-            return
-        }
-        // FOLLOWING CODE WITH THE NEW API BUT DOES NOT WORK ON Android 11 AOSP //
-        /*
-        val cellInfos = mTelephonyManager!!.getAllCellInfo()
-        if (cellInfos != null && cellInfos.size > 0) {
-            val info = cellInfos[0]
-            var cid = -1
-            var lac = -1
-            if (info is CellInfoGsm) {
-                cid = (info as CellInfoGsm).getCellIdentity().getCid()
-                lac = (info as CellInfoGsm).getCellIdentity().getLac()
-            } else if(info is CellInfoCdma){
-                cid = (info as CellInfoCdma).getCellIdentity().getBasestationId()
-                lac = (info as CellInfoCdma).getCellIdentity().getNetworkId()
-            } else if(info is CellInfoLte) {
-                cid = (info as CellInfoLte).getCellIdentity().getCi()
-            }
-            result.success(
-                """
-                {
-                    "cid": $cid,
-                    "lac": $lac
-                }
-                """
-            )
-            return
-        }
-        */
-        result.error(E_NO_CELL_ID, "No cell id", "")
     }
 
 

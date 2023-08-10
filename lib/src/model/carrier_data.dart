@@ -28,7 +28,7 @@ class CarrierData {
 
   @override
   String toString() {
-    return 'CarrierData(allowsVOIP: $allowsVOIP, carrierName: $carrierName, isoCountryCode: $isoCountryCode, mobileCountryCode: $mobileCountryCode, mobileNetworkCode: $mobileNetworkCode, mobileNetworkOperator: $mobileNetworkOperator, networkGeneration: $networkGeneration, radioType: $radioType, cid: $cid, lac: $lac)';
+    return 'CarrierData(allowsVOIP: $allowsVOIP, carrierName: $carrierName, isoCountryCode: $isoCountryCode, mobileCountryCode: $mobileCountryCode, mobileNetworkCode: $mobileNetworkCode, mobileNetworkOperator: $mobileNetworkOperator, networkGeneration: $networkGeneration, radioType: $radioType)';
   }
 
   CarrierData copyWith({
@@ -49,12 +49,11 @@ class CarrierData {
       isoCountryCode: isoCountryCode ?? this.isoCountryCode,
       mobileCountryCode: mobileCountryCode ?? this.mobileCountryCode,
       mobileNetworkCode: mobileNetworkCode ?? this.mobileNetworkCode,
-      mobileNetworkOperator:
-          mobileNetworkOperator ?? this.mobileNetworkOperator,
+      mobileNetworkOperator: mobileNetworkOperator ?? this.mobileNetworkOperator,
       networkGeneration: networkGeneration ?? this.networkGeneration,
       radioType: radioType ?? this.radioType,
-      cid: cid ?? this.cid,
-      lac: lac ?? this.lac,
+      cid: null,
+      lac: null,
     );
   }
 
@@ -68,8 +67,8 @@ class CarrierData {
       'mobileNetworkOperator': mobileNetworkOperator,
       'networkGeneration': networkGeneration,
       'radioType': radioType,
-      'cid': cid,
-      'lac': lac
+      'cid': null,
+      'lac': null,
     };
   }
 
@@ -83,15 +82,14 @@ class CarrierData {
       mobileNetworkOperator: map['mobileNetworkOperator'],
       networkGeneration: map['networkGeneration'],
       radioType: map['radioType'],
-      cid: map['cid'],
-      lac: map['lac'],
+      cid: null,
+      lac: null,
     );
   }
 
   String toJson() => json.encode(toMap());
 
-  factory CarrierData.fromJson(String source) =>
-      CarrierData.fromMap(json.decode(source));
+  factory CarrierData.fromJson(String source) => CarrierData.fromMap(json.decode(source));
 
   @override
   bool operator ==(Object other) {
@@ -109,8 +107,6 @@ class CarrierData {
         mobileNetworkCode.hashCode ^
         mobileNetworkOperator.hashCode ^
         networkGeneration.hashCode ^
-        radioType.hashCode ^
-        cid.hashCode ^
-        lac.hashCode;
+        radioType.hashCode;
   }
 }
