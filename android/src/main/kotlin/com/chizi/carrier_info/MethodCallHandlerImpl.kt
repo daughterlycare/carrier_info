@@ -108,6 +108,12 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
     }
 
     private fun radioType(result: MethodChannel.Result) {
+        // If Android version does not support .getDataNetworkType()
+        if (Build.VERSION.SDK_INT < 24) {
+            result.success("Unknown")
+            return
+        }
+
         // TelephonyManager.getDataNetworkType requires READ_PHONE_STATE or READ_BASIC_PHONE_STATE
         // https://developer.android.com/reference/android/telephony/TelephonyManager#getDataNetworkType()
         val dataNetworkType = mTelephonyManager!!.getDataNetworkType()
@@ -136,6 +142,12 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
     }
 
     private fun networkGeneration(result: MethodChannel.Result) {
+        // If Android version does not support .getDataNetworkType()
+        if (Build.VERSION.SDK_INT < 24) {
+            result.success("Unknown")
+            return
+        }
+
         val radioType = mTelephonyManager?.getDataNetworkType()
         if (radioType != null) {
             when (radioType) {
