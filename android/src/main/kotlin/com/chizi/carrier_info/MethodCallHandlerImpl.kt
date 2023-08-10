@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.telephony.TelephonyManager
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.MethodCall
@@ -19,7 +20,6 @@ import android.telephony.gsm.GsmCellLocation
 
 
 internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : MethodCallHandler {
-
 
     private val TAG: String =  "carrier_info"
     private var context: Context?
@@ -68,7 +68,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
                     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
                         if (!checkIfAlreadyHavePermission()) {
                             requestForSpecificPermission(0)
-                        }else{
+                        } else {
                             radioType(result)
                         }
                     }
@@ -78,7 +78,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
                     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
                         if (!checkIfAlreadyHavePermission()) {
                             requestForSpecificPermission(1)
-                        }else{
+                        } else {
                             networkGeneration(result)
                         }
                     }
@@ -160,8 +160,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
                 TelephonyManager.NETWORK_TYPE_NR
                 -> result.success("5G")
                 else -> result.success("Unknown")
-                }
-
+            }
         } else {
             result.error(E_NO_NETWORK_TYPE, "No network type","")
         }
@@ -199,7 +198,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
     }
 
     // return MCC + MNC (5 or 6 digits), e.g. 20601
-    private fun mobileNetworkOperator(result: MethodChannel.Result){
+    private fun mobileNetworkOperator(result: MethodChannel.Result) {
         val plmn = mTelephonyManager!!.simOperator
         if (plmn != null && "" != plmn) {
             result.success(plmn)
@@ -213,21 +212,16 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         when (requestCode) {
             0 -> return if (grantResults!![0] == PackageManager.PERMISSION_GRANTED) {
                 this.func()!!
-
             } else {
                 requestForSpecificPermission(0)
-
             }
             1 -> return if (grantResults!![0] == PackageManager.PERMISSION_GRANTED) {
                 this.func()!!
-
             } else {
                 requestForSpecificPermission(1)
-
             }
             2 -> return if (grantResults!![0] == PackageManager.PERMISSION_GRANTED) {
                 this.func()!!
-
             } else {
                 requestForSpecificPermission(2)
             }
