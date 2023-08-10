@@ -10,13 +10,10 @@ import android.os.Handler
 import android.os.Looper
 import android.telephony.TelephonyManager
 import android.util.Log
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import android.telephony.cdma.CdmaCellLocation 
-import android.telephony.gsm.GsmCellLocation 
 
 
 internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : MethodCallHandler {
@@ -64,24 +61,10 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
                     mobileNetworkOperator(result)
                 }
                 "radioType" -> {
-                    func = { radioType(result) }
-                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
-                        if (!checkIfAlreadyHavePermission()) {
-                            requestForSpecificPermission(0)
-                        } else {
-                            radioType(result)
-                        }
-                    }
+                    radioType(result)
                 }
                 "networkGeneration" -> {
-                    func = { networkGeneration(result) }
-                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
-                        if (!checkIfAlreadyHavePermission()) {
-                            requestForSpecificPermission(1)
-                        } else {
-                            networkGeneration(result)
-                        }
-                    }
+                    networkGeneration(result)
                 }
                 else -> {
                     result.notImplemented()
@@ -90,12 +73,20 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         }
     }
 
-    private fun requestForSpecificPermission(i: Int) {
-        ActivityCompat.requestPermissions(this.activity!!, arrayOf(Manifest.permission.READ_PHONE_STATE), i)
-    }
+    private fun androidVersionCanGetDataNetworkType(): Boolean {
+        // TelephonyManager.getDataNetworkType requires READ_PHONE_STATE or READ_BASIC_PHONE_STATE
+        // https://developer.android.com/reference/android/telephony/TelephonyManager#getDataNetworkType()
 
-    private fun checkIfAlreadyHavePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(this.activity!!, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        // We do not want to request phone permissions, so we are checking if the current SDK supports READ_BASIC_PHONE_STATE, and if it is enabled
+
+        // If Android version has READ_BASIC_PHONE_STATE available
+        if (Build.VERSION.SDK_INT >= 33) {
+            // And it is enabled
+            val hasPermission = ContextCompat.checkSelfPermission(this.activity!!, Manifest.permission.READ_BASIC_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+            return hasPermission
+        }
+
+        return false
     }
 
     private fun carrierName(result: MethodChannel.Result) {
@@ -107,16 +98,26 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         }
     }
 
-    private fun radioType(result: MethodChannel.Result) {
-        // If Android version does not support .getDataNetworkType()
-        if (Build.VERSION.SDK_INT < 24) {
-            result.success("Unknown")
-            return
+    private fun getDataNetworkType(): Int {
+        if (mTelephonyManager != null) {
+            return TelephonyManager.NETWORK_TYPE_UNKNOWN
         }
 
-        // TelephonyManager.getDataNetworkType requires READ_PHONE_STATE or READ_BASIC_PHONE_STATE
-        // https://developer.android.com/reference/android/telephony/TelephonyManager#getDataNetworkType()
-        val dataNetworkType = mTelephonyManager!!.getDataNetworkType()
+        if (!androidVersionCanGetDataNetworkType()) {
+            return TelephonyManager.NETWORK_TYPE_UNKNOWN
+        }
+
+        try {
+            return mTelephonyManager!!.getDataNetworkType()
+        } catch (e: Exception) {
+            Log.d(TAG, "Could not getDataNetworkType", e)
+        }
+
+        return TelephonyManager.NETWORK_TYPE_UNKNOWN
+    }
+
+    private fun radioType(result: MethodChannel.Result) {
+        val dataNetworkType = getDataNetworkType()
         when (dataNetworkType) {
             TelephonyManager.NETWORK_TYPE_1xRTT -> result.success("1xRTT")
             TelephonyManager.NETWORK_TYPE_CDMA -> result.success("CDMA")
@@ -142,13 +143,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
     }
 
     private fun networkGeneration(result: MethodChannel.Result) {
-        // If Android version does not support .getDataNetworkType()
-        if (Build.VERSION.SDK_INT < 24) {
-            result.success("Unknown")
-            return
-        }
-
-        val radioType = mTelephonyManager?.getDataNetworkType()
+        val radioType = getDataNetworkType()
         if (radioType != null) {
             when (radioType) {
                 TelephonyManager.NETWORK_TYPE_GPRS,
@@ -176,7 +171,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
                 else -> result.success("Unknown")
             }
         } else {
-            result.error(E_NO_NETWORK_TYPE, "No network type","")
+            result.error(E_NO_NETWORK_TYPE, "No network type", "")
         }
     }
 
@@ -185,7 +180,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         if (iso != null && "" != iso) {
             result.success(iso)
         } else {
-            result.error(E_NO_ISO_COUNTRY_CODE, "No iso country code","")
+            result.error(E_NO_ISO_COUNTRY_CODE, "No iso country code", "")
         }
     }
 
@@ -196,7 +191,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         if (plmn != null && "" != plmn) {
             result.success(plmn.substring(0, 3))
         } else {
-            result.error(E_NO_MOBILE_COUNTRY_CODE, "No mobile country code","")
+            result.error(E_NO_MOBILE_COUNTRY_CODE, "No mobile country code", "")
         }
     }
 
@@ -207,7 +202,7 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
         if (plmn != null && "" != plmn) {
             result.success(plmn.substring(3))
         } else {
-            result.error(E_NO_MOBILE_NETWORK, "No mobile network code","")
+            result.error(E_NO_MOBILE_NETWORK, "No mobile network code", "")
         }
     }
 
@@ -218,27 +213,6 @@ internal class MethodCallHandlerImpl(context: Context, activity: Activity?) : Me
             result.success(plmn)
         } else {
             result.error(E_NO_NETWORK_OPERATOR, "No mobile network operator", "")
-        }
-    }
-
-
-    fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>?, grantResults: IntArray?) {
-        when (requestCode) {
-            0 -> return if (grantResults!![0] == PackageManager.PERMISSION_GRANTED) {
-                this.func()!!
-            } else {
-                requestForSpecificPermission(0)
-            }
-            1 -> return if (grantResults!![0] == PackageManager.PERMISSION_GRANTED) {
-                this.func()!!
-            } else {
-                requestForSpecificPermission(1)
-            }
-            2 -> return if (grantResults!![0] == PackageManager.PERMISSION_GRANTED) {
-                this.func()!!
-            } else {
-                requestForSpecificPermission(2)
-            }
         }
     }
 }

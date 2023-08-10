@@ -50,6 +50,7 @@ class CarrierInfoPlugin: FlutterPlugin,
   override fun onDetachedFromActivity() {
     handler?.setActivity(null)
   }
+  
   private fun teardownChannel() {
     channel?.setMethodCallHandler(null)
     channel = null
@@ -57,7 +58,6 @@ class CarrierInfoPlugin: FlutterPlugin,
   }
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray): Boolean {
-    handler?.onRequestPermissionsResult(requestCode, permissions, grantResults)
     return true
   }
 }
