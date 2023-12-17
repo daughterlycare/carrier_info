@@ -29,7 +29,7 @@ android {
         namespace("com.chizi.carrier_info")
     }
 
-    compileSdk = 34
+    compileSdk = 33
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
